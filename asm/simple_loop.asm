@@ -1,0 +1,11 @@
+.ORIG x1000
+LD R0, TEN
+LOOP
+    BRz DONE
+    ADD R0, R0, #-1
+    BRnzp LOOP
+DONE
+    BRnzp DONE
+TEN
+    .FILL 10
+.END

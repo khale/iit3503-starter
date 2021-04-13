@@ -1,0 +1,7 @@
+.ORIG x0000
+AND R0, R0, #0
+ADD R0, R0, #3
+NOT R0, R0
+DONE
+    BRnzp DONE
+.END
