@@ -320,6 +320,7 @@ class ControlStore extends Module {
   c21.sigs.GatePC   := true.B
   c21.sigs.LDREG    := true.B
   c21.sigs.DRMUX    := 1.U // R7
+  c20.sigs.PCMUX    := 1.U // new PC comes from addr calc
   c21.sigs.LDPC     := true.B
   c21.sigs.ADDR1MUX := false.B // PC + 1
   c21.sigs.ADDR2MUX := 3.U // SEXT(IR[10..0]) (PCoffset11)
