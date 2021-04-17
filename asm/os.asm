@@ -558,6 +558,12 @@ KERNEL_ENTRY	           ; reset vector will point here (x02ca)
     LD R0, USER_ENTRY_ADDR
     ADD R6, R6, #-1
     STR R0, R6, #0         ; push userspace entry (as PC) onto kernel stack
+    AND R0, R0, #0         ; do not leak GPR info to userspace
+    AND R1, R1, #0
+    AND R2, R2, #0
+    AND R3, R3, #0
+    AND R4, R4, #0
+    AND R5, R5, #0
     RTI                    ; jump to userspace
 
 
@@ -648,24 +654,79 @@ TRAP_IN_HANDLER
 
 TRAP_IN_MSG          .STRINGZ "\n[student@techOS-shell] "
 
-; TODO
+
 TRAP_PUTSP_HANDLER
-	; NOTE: This trap will end when it sees any NUL, even in
-	; packed form, despite the P&P second edition's requirement
-	; of a double NUL.
+    ST R1, PUTSP_SAVE_R1   ; register saves
+    ST R2, PUTSP_SAVE_R2
+    ST R3, PUTSP_SAVE_R3
+    ADD R3, R0, #0         ; save string ptr
+PUTSP_LOOP
+    LDR R1, R3, #0         ; R1 <- *str
+    BRz PUTSP_DONE
+    LD R2, PUTSP_LOMASK
+    AND R0, R1, R2         ; R0 <- *str & 0xff
+    OUT                    ; putc(*str)
+    ADD R0, R1, #0         ; R0 <- *str
+    JSR SHIFT_RIGHT_8      ; shift *str right by 8
+    ADD R0, R0, #0
+    BRz PUTSP_DONE
+    OUT
+CHAR_DONE
+    ADD R3, R3, #1
+    BRnzp PUTSP_LOOP
 
-	;ST R0,OS_R0		; save R0, R1, R2, R3, and R7
-	;ST R1,OS_R1
-	;ST R2,OS_R2
-	;ST R3,OS_R3
-	ADD R1,R0,#0		; move string pointer (R0) into R1
+PUTSP_DONE
+    LD R3, PUTSP_SAVE_R3
+    LD R2, PUTSP_SAVE_R2
+    LD R1, PUTSP_SAVE_R1
+    RTI
 
-TRAP_PUTSP_LOOP
-    LEA R0, BAD_PUTSP
-    PUTS
-    HALT
 
-BAD_PUTSP .STRINGZ "PUTSP is not currently supported\n"
+PUTSP_LOMASK .FILL x00FF
+
+PUTSP_SAVE_R1 .BLKW 1
+PUTSP_SAVE_R2 .BLKW 1
+PUTSP_SAVE_R3 .BLKW 1
+
+; R0 contains bits *only* in the upper byte
+SHIFT_RIGHT_8
+    ST R1, SR8_R1_SAVE
+    ST R2, SR8_R2_SAVE
+
+    LD R1, SR8_HI_MASK
+    AND R0, R0, R1
+
+    AND R1, R1, #0
+    ADD R1, R1, #8
+    AND R2, R2, #0
+
+SR8_LOOP
+    ADD R0, R0, #0  ; test MSB
+    BRn SHIFT_IN_ONE
+DO_SHIFT
+
+    ADD R1, R1, #-1
+    BRnz SR8_DONE
+
+    ADD R2, R2, R2 ; R2 << 1 (shift in MSB to R0)
+    ADD R0, R0, R0 ; R0 << 1 
+
+    BRnzp SR8_LOOP
+
+SR8_DONE
+    ADD R0, R2, #0      ; return result in R0
+    LD R1, SR8_R1_SAVE
+    LD R2, SR8_R2_SAVE
+    RET
+
+SHIFT_IN_ONE
+    ADD R2, R2, #1
+    BRnzp DO_SHIFT
+
+SR8_R1_SAVE .BLKW 1
+SR8_R2_SAVE .BLKW 1
+SR8_HI_MASK .FILL xFF00
+
 
 
 TRAP_HALT_HANDLER              ; we don't come back from a HALT, so no need to save regs
