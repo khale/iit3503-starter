@@ -28,4 +28,30 @@ class MemCtrlTester extends AnyFlatSpec with ChiselScalatestTester with Matchers
       c.io.mdrOut.expect("hF00D".U)
     }
   }
+
+  it should "not load MDR when LDMDR is not asserted" in {
+    test(new MemCtrl()) { c =>
+      c.io.LDMDR.poke(true.B)
+      c.io.bus.poke("hF00D".U)
+      c.clock.step(1)
+      c.io.mdrOut.expect("hF00D".U)
+      c.io.LDMDR.poke(false.B)
+      c.io.bus.poke("hFEED".U)
+      c.clock.step(1)
+      c.io.mdrOut.expect("hF00D".U)
+    }
+  }
+
+  it should "not load MAR when LDMAR is not asserted" in {
+    test(new MemCtrl()) { c =>
+      c.io.LDMAR.poke(true.B)
+      c.io.bus.poke("hF00D".U)
+      c.clock.step(1)
+      c.io.debugMAR.expect("hF00D".U)
+      c.io.LDMAR.poke(false.B)
+      c.io.bus.poke("hFEED".U)
+      c.clock.step(1)
+      c.io.debugMAR.expect("hF00D".U)
+    }
+  }
 }
