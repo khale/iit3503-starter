@@ -92,7 +92,7 @@ create_ram (size_t size, char * img, char * os_img, uint16_t * entry)
         load_os_image(ram, os_img);
         load_program_image(ram, img, false);
     } else {
-        *entry = load_program_image(ram, img, true);
+        *entry = htobe16(load_program_image(ram, img, true));
     }
 
     for(int i = 0; i < size; i++) {
